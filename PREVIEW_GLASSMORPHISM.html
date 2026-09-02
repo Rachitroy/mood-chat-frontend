@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood Chat - Glassmorphism Preview</title>
+  <style>
+    /* ==========================================
+       GLASSMORPHISM DESIGN SYSTEM PREVIEW
+       Modern Premium Style
+       ========================================== */
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Base Colors */
+      --bg-primary: #0a0d1a;
+      --bg-secondary: #141829;
+      --bg-tertiary: #1e2235;
+
+      /* Glass Surfaces */
+      --glass-surface: rgba(30, 34, 52, 0.7);
+      --glass-surface-light: rgba(50, 54, 72, 0.5);
+      --glass-surface-hover: rgba(60, 64, 82, 0.8);
+
+      /* Text Colors */
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+
+      /* Emotion Colors */
+      --emotion-flirty: #ff3d81;
+      --emotion-happy: #ffd700;
+      --emotion-sad: #5b9cff;
+      --emotion-angry: #ff4040;
+      --emotion-neutral: #a0a8c0;
+
+      /* Gradients */
+      --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-bg-main: linear-gradient(180deg, #0a0d1a 0%, #141829 50%, #0a0d1a 100%);
+
+      /* Borders */
+      --border-primary: rgba(255, 255, 255, 0.1);
+      --border-focus: rgba(102, 126, 234, 0.5);
+
+      /* Spacing */
+      --space-2: 12px;
+      --space-3: 16px;
+      --space-4: 20px;
+      --space-5: 24px;
+
+      /* Radius */
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-full: 9999px;
+
+      /* Shadows */
+      --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+      --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.2);
+      --glow-primary: 0 0 20px rgba(102, 126, 234, 0.3);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--gradient-bg-main);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* App Shell */
+    .app-shell {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      position: relative;
+    }
+
+    /* Background Glow Effect */
+    .app-shell::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.15), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ==========================================
+       SIDEBAR
+       ========================================== */
+    .sidebar {
+      width: 280px;
+      height: 100vh;
+      background: var(--glass-surface);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border-primary);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sidebar-header {
+      padding: var(--space-5);
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.08) 100%);
+      border-bottom: 1px solid var(--border-primary);
+    }
+
+    .sidebar-title {
+      font-size: 32px;
+      font-weight: 800;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .sidebar-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .room-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-2);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .room-item {
+      padding: 14px 16px;
+      background: transparent;
+      border: 2px solid transparent;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .room-item:hover {
+      background: rgba(102, 126, 234, 0.1);
+      border-color: rgba(102, 126, 234, 0.3);
+      color: var(--text-primary);
+      transform: translateX(4px);
+    }
+
+    .room-item.active {
+      background: var(--gradient-primary);
+      border-color: transparent;
+      color: white;
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .sidebar-footer {
+      padding: var(--space-3);
+      border-top: 1px solid var(--border-primary);
+      background: rgba(20, 24, 41, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .user-status {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================
+       CHAT MAIN
+       ========================================== */
+    .chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Chat Header */
+    .chat-header {
+      height: 64px;
+      background: var(--glass-surface);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-primary);
+      padding: 0 var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .room-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .chat-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .call-btn {
+      background: var(--glass-surface-light);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md);
+      padding: 10px 18px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .call-btn:hover {
+      background: var(--gradient-primary);
+      border-color: transparent;
+      transform: translateY(-2px);
+      box-shadow: var(--glow-primary);
+    }
+
+    /* Message List */
+    .message-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message-row {
+      display: flex;
+      flex-direction: column;
+      animation: slideInUp 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message-row.own {
+      align-items: flex-end;
+    }
+
+    .message-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: monospace;
+      margin-bottom: 6px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .message-bubble {
+      max-width: 60%;
+      background: var(--glass-surface);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 2px solid transparent;
+      border-radius: var(--radius-lg);
+      padding: 14px 18px;
+      box-shadow: var(--shadow-md);
+      transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .message-bubble:hover {
+      background: var(--glass-surface-hover);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+
+    .message-row.own .message-bubble {
+      background: var(--gradient-primary);
+      border: none;
+      color: white;
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Emotion Variants */
+    .message-bubble.flirty {
+      border-color: var(--emotion-flirty);
+      box-shadow: var(--shadow-md), 0 0 24px rgba(255, 61, 129, 0.4);
+    }
+
+    .message-bubble.happy {
+      border-color: var(--emotion-happy);
+      box-shadow: var(--shadow-md), 0 0 24px rgba(255, 215, 0, 0.4);
+    }
+
+    .message-bubble.sad {
+      border-color: var(--emotion-sad);
+      box-shadow: var(--shadow-md), 0 0 24px rgba(91, 156, 255, 0.4);
+    }
+
+    .message-bubble.angry {
+      border-color: var(--emotion-angry);
+      box-shadow: var(--shadow-md), 0 0 24px rgba(255, 64, 64, 0.4);
+    }
+
+    /* Composer */
+    .composer {
+      min-height: 72px;
+      padding: var(--space-4) var(--space-5);
+      background: var(--glass-surface);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .attach-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--glass-surface-light);
+      border: 1px solid var(--border-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 18px;
+    }
+
+    .attach-btn:hover {
+      background: rgba(102, 126, 234, 0.2);
+      border-color: rgba(102, 126, 234, 0.4);
+      transform: scale(1.1);
+    }
+
+    .composer-input {
+      flex: 1;
+      background: rgba(20, 24, 41, 0.6);
+      border: 2px solid var(--border-primary);
+      border-radius: var(--radius-full);
+      padding: 12px 20px;
+      color: var(--text-primary);
+      font-size: 15px;
+      font-family: inherit;
+      transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .composer-input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      background: rgba(20, 24, 41, 0.9);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .composer-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .send-btn {
+      padding: 12px 28px;
+      background: var(--gradient-primary);
+      border: none;
+      border-radius: var(--radius-md);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .send-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(102, 126, 234, 0.3);
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(102, 126, 234, 0.5);
+    }
+
+    /* Info Banner */
+    .preview-banner {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-surface);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md);
+      padding: 12px 24px;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .preview-banner strong {
+      color: var(--text-primary);
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-banner">
+    <strong>🎨 PREVIEW:</strong> Modern Glassmorphism Premium Design
+  </div>
+
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Mood Chat</div>
+        <div class="sidebar-subtitle">Emotion-aware messaging</div>
+      </div>
+
+      <div class="room-list">
+        <div class="room-item active">💼 Design Team</div>
+        <div class="room-item">🎮 Gaming Squad</div>
+        <div class="room-item">📚 Book Club</div>
+        <div class="room-item">🎨 Creative Projects</div>
+        <div class="room-item">💪 Fitness Group</div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-avatar">JD</div>
+        <div class="user-info">
+          <div class="user-name">John Doe</div>
+          <div class="user-status">Online</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Main -->
+    <div class="chat-main">
+      <!-- Header -->
+      <div class="chat-header">
+        <div class="room-name">💼 Design Team</div>
+        <div class="chat-actions">
+          <button class="call-btn">📞 Call</button>
+          <button class="call-btn">🎥 Video</button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="message-list">
+        <!-- Other's Message - Flirty -->
+        <div class="message-row">
+          <div class="message-meta">
+            <span>Sarah</span>
+            <span>·</span>
+            <span>10:23 AM</span>
+          </div>
+          <div class="message-bubble flirty">
+            Hey! I absolutely love what you did with the new design! 😊💕
+          </div>
+        </div>
+
+        <!-- Own Message -->
+        <div class="message-row own">
+          <div class="message-meta">
+            <span>You</span>
+            <span>·</span>
+            <span>10:24 AM</span>
+          </div>
+          <div class="message-bubble">
+            Thanks! I'm really happy with how it turned out. The glassmorphism effect adds such a premium feel.
+          </div>
+        </div>
+
+        <!-- Other's Message - Happy -->
+        <div class="message-row">
+          <div class="message-meta">
+            <span>Mike</span>
+            <span>·</span>
+            <span>10:25 AM</span>
+          </div>
+          <div class="message-bubble happy">
+            This is amazing! 🎉 The emotion detection is working perfectly!
+          </div>
+        </div>
+
+        <!-- Other's Message - Sad -->
+        <div class="message-row">
+          <div class="message-meta">
+            <span>Emma</span>
+            <span>·</span>
+            <span>10:26 AM</span>
+          </div>
+          <div class="message-bubble sad">
+            I wish I could join you guys, but I'm stuck in meetings all day 😢
+          </div>
+        </div>
+
+        <!-- Own Message -->
+        <div class="message-row own">
+          <div class="message-meta">
+            <span>You</span>
+            <span>·</span>
+            <span>10:27 AM</span>
+          </div>
+          <div class="message-bubble">
+            No worries Emma! We'll catch you up later. The new glassmorphic UI really makes the emotions pop!
+          </div>
+        </div>
+
+        <!-- Other's Message - Angry -->
+        <div class="message-row">
+          <div class="message-meta">
+            <span>Alex</span>
+            <span>·</span>
+            <span>10:28 AM</span>
+          </div>
+          <div class="message-bubble angry">
+            The old design was terrible! But this new one is fire! 🔥
+          </div>
+        </div>
+
+        <!-- Other's Message - Neutral -->
+        <div class="message-row">
+          <div class="message-meta">
+            <span>Chris</span>
+            <span>·</span>
+            <span>10:29 AM</span>
+          </div>
+          <div class="message-bubble">
+            The color palette and typography choices are really well thought out. Great work on the design system.
+          </div>
+        </div>
+      </div>
+
+      <!-- Composer -->
+      <div class="composer">
+        <button class="attach-btn">📎</button>
+        <button class="attach-btn">🎤</button>
+        <input type="text" class="composer-input" placeholder="Type a message…" />
+        <button class="send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Add some interactivity for preview
+    document.querySelectorAll('.room-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.room-item').forEach(r => r.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // Make input functional for preview
+    const input = document.querySelector('.composer-input');
+    const sendBtn = document.querySelector('.send-btn');
+
+    sendBtn.addEventListener('click', () => {
+      if (input.value.trim()) {
+        alert('Preview Mode: Message sending is disabled.\n\nThis is just a visual preview of the glassmorphism design!');
+        input.value = '';
+      }
+    });
+
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && input.value.trim()) {
+        alert('Preview Mode: Message sending is disabled.\n\nThis is just a visual preview of the glassmorphism design!');
+        input.value = '';
+      }
+    });
+
+    console.log('🎨 Mood Chat - Glassmorphism Preview Loaded!');
+    console.log('📋 Design System: Modern Premium with Glass Effects');
+  </script>
+</body>
+</html>

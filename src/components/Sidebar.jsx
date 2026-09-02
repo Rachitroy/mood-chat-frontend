@@ -25,7 +25,7 @@ export default function Sidebar({ user, rooms, activeRoomId, onSelectRoom, onCre
 
       <div className="room-list">
         {rooms.length === 0 && (
-          <p style={{ color: "var(--text-muted)", fontSize: 13, padding: "8px 12px" }}>
+          <p className="sidebar-empty">
             No rooms yet — create one below.
           </p>
         )}
@@ -44,7 +44,7 @@ export default function Sidebar({ user, rooms, activeRoomId, onSelectRoom, onCre
         ))}
       </div>
 
-      <form className="new-room-form" onSubmit={handleCreate} style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
+      <form className="new-room-form" onSubmit={handleCreate}>
         <input
           placeholder="New room name"
           value={newRoomName}

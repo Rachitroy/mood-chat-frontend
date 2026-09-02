@@ -211,7 +211,7 @@ function addEmotionTint(emotion) {
   tint.style.background = tintColor;
   tint.style.position = "fixed";
   tint.style.inset = "0";
-  tint.style.zIndex = "999";
+  tint.style.zIndex = "125";
   tint.style.pointerEvents = "none";
   tint.style.opacity = "0.15";
   tint.style.animation = "fadeInOut 1.5s ease-in-out";
@@ -228,7 +228,7 @@ function flashScreenRed() {
   flash.style.position = "fixed";
   flash.style.inset = "0";
   flash.style.background = "#ff4f4f";
-  flash.style.zIndex = "999";
+  flash.style.zIndex = "125";
   flash.style.pointerEvents = "none";
   flash.style.animation = "flash 0.4s ease-out";
   document.body.appendChild(flash);
@@ -244,7 +244,7 @@ function pulseScreenBrightness() {
   pulse.style.position = "fixed";
   pulse.style.inset = "0";
   pulse.style.background = "white";
-  pulse.style.zIndex = "999";
+  pulse.style.zIndex = "125";
   pulse.style.pointerEvents = "none";
   pulse.style.animation = "brightnessPulse 0.6s ease-out";
   document.body.appendChild(pulse);

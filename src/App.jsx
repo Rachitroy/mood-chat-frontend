@@ -108,7 +108,7 @@ export default function App() {
 
   if (!session) {
     return (
-      <div className="app-shell" data-mood="neutral">
+      <div className="app-shell" data-emotion="neutral">
         <button
           className="fullscreen-btn"
           onClick={toggleFullscreen}
@@ -125,7 +125,7 @@ export default function App() {
   const activeRoom = rooms.find((r) => r.id === activeRoomId) || null;
 
   return (
-    <div className="app-shell" data-mood={mood}>
+    <div className="app-shell" data-emotion={mood}>
       <button
         className="fullscreen-btn"
         onClick={toggleFullscreen}
@@ -160,7 +160,7 @@ export default function App() {
       </div>
 
       {call.errorMessage && (
-        <div className="error-banner" style={{ position: "fixed", top: 16, right: 16, zIndex: 200, maxWidth: 320 }}>
+        <div className="error-banner floating-error" role="status">
           {call.errorMessage}
         </div>
       )}

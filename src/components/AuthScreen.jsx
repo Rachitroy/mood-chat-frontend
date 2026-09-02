@@ -78,7 +78,7 @@ export default function AuthScreen({ onAuthenticated }) {
       {snowflakes}
 
       <div className="auth-card">
-        <div style={{ position: "relative", zIndex: 1 }}>
+        <div className="auth-card-inner">
           <p className="auth-eyebrow">💬 Mood Chat</p>
           <h1 className="auth-title">{mode === "login" ? "Welcome back" : "Create an account"}</h1>
           <p className="auth-subtitle">

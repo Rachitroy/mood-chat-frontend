@@ -305,15 +305,18 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
     <div className="chat-main" ref={shakeTargetRef} data-emotion={currentEmotion}>
       <div className="rain-overlay" ref={rainContainerRef} />
 
-      <div className="chat-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="chat-header">
+        <div className="chat-header-room">
           <button className="back-btn" onClick={onBack} aria-label="Back to rooms">
             ←
           </button>
-          <h2>{room.is_group ? "# " : ""}{room.name}</h2>
+          <div>
+            <p className="chat-header-eyebrow">{room.is_group ? "Group room" : "Private room"}</p>
+            <h2>{room.is_group ? "# " : ""}{room.name}</h2>
+          </div>
         </div>
         {otherMember && (
-          <div>
+          <div className="chat-header-actions" aria-label="Call actions">
             <button
               className="call-btn-header"
               disabled={callDisabled}
@@ -333,9 +336,9 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
       </div>
 
       <div className="message-list" ref={listRef}>
-        {loading && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading messages…</p>}
+        {loading && <p className="message-state">Loading messages…</p>}
         {!loading && messages.length === 0 && (
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
+          <p className="message-state">
             No messages yet — say something.
           </p>
         )}
@@ -351,7 +354,7 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
                 {own ? "You" : senderName} · {formatTime(createdAt)}
               </div>
               <div className="message-bubble-wrap">
-                <div className="message-bubble" data-mood={tag}>
+                <div className="message-bubble" data-emotion={tag}>
                   {msg.replyTo && (
                     <div className="reply-quote">
                       <span className="reply-quote-sender">{msg.replyTo.senderUsername}</span>
@@ -383,7 +386,7 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
       </div>
 
       {uploadError && (
-        <div className="error-banner" style={{ margin: "0 24px 8px" }}>
+        <div className="error-banner composer-error" role="status">
           {uploadError}
         </div>
       )}
@@ -420,7 +423,7 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
           <input
             type="file"
             ref={fileInputRef}
-            style={{ display: "none" }}
+            className="visually-hidden"
             onChange={handleFileSelected}
           />
           <button
