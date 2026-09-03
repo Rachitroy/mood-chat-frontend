@@ -33,6 +33,13 @@ export const api = {
       body: { name, isGroup, memberUsernames },
     }),
 
+  createDirectRoom: (token, username) =>
+    request("/rooms", {
+      method: "POST",
+      token,
+      body: { name: `direct_${username}`, isGroup: false, memberUsernames: [username] },
+    }),
+
   getMessages: (token, roomId, limit = 50) =>
     request(`/rooms/${roomId}/messages?limit=${limit}`, { token }),
 
@@ -55,6 +62,26 @@ export const api = {
     }
     return data;
   },
+
+  // User search
+  searchUsers: (token, query) =>
+    request(`/users/search?q=${encodeURIComponent(query)}`, { token }),
+
+  // Chat requests
+  getRequests: (token) => request("/requests", { token }),
+  sendRequest: (token, username, message = "") =>
+    request("/requests", { method: "POST", token, body: { username, message } }),
+  actionRequest: (token, requestId, action) =>
+    request(`/requests/${requestId}/action`, { method: "POST", token, body: { action } }),
+  cancelRequest: (token, requestId) =>
+    request(`/requests/${requestId}`, { method: "DELETE", token }),
+
+  // Block users
+  getBlockedUsers: (token) => request("/users/blocked", { token }),
+  blockUser: (token, username) =>
+    request("/users/block", { method: "POST", token, body: { username } }),
+  unblockUser: (token, username) =>
+    request(`/users/block/${encodeURIComponent(username)}`, { method: "DELETE", token }),
 };
 
 export { API_BASE };
