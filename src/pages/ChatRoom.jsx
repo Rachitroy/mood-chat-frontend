@@ -349,8 +349,185 @@ export default function ChatRoom({ session, onLogout }) {
     }
   }
 
+  // ==========================================
+  // WEBRTC CALLING IMPLEMENTATION
+  // ==========================================
+  const localStreamRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+
+  async function startCall() {
+    if (!otherMember) return;
+    const s = socketRef.current;
+
+    if (callActive) {
+      // End call
+      setCallActive(false);
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
+      if (s) {
+        s.emit("end_call", { roomId, callType });
+      }
+      return;
+    }
+
+    // Start call
+    setCallActive(true);
+
+    try {
+      // Get user media (camera and/or microphone)
+      const constraints = callType === "video"
+        ? { video: true, audio: true }
+        : { audio: true };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      localStreamRef.current = stream;
+
+      // Create peer connection with STUN servers
+      const peerConnection = new RTCPeerConnection({
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun2.l.google.com:19302" },
+          { urls: "stun:stun3.l.google.com:19302" },
+          { urls: "stun:stun4.l.google.com:19302" },
+        ]
+      });
+      peerConnectionRef.current = peerConnection;
+
+      // Add local tracks to peer connection
+      stream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, stream);
+      });
+
+      // Handle incoming remote stream
+      peerConnection.ontrack = (event) => {
+        const remoteStream = event.streams[0];
+        // In a real app, you'd attach this to a <video> element
+        console.log("Received remote stream:", remoteStream);
+      };
+
+      // ICE candidate handling
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && s) {
+          s.emit("ice_candidate", {
+            roomId,
+            targetId: otherMember.id,
+            candidate: event.candidate
+          });
+        }
+      };
+
+      // Create and send offer
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      if (s) {
+        s.emit("start_call", {
+          roomId,
+          targetId: otherMember.id,
+          callType,
+          sdp: offer.sdp
+        });
+      }
+
+    } catch (err) {
+      console.error("Failed to start call:", err);
+      setUploadError("Failed to start call. Please check microphone/camera permissions.");
+      setCallActive(false);
+    }
+  }
+
+  // Socket event listeners for incoming calls
+  useEffect(() => {
+    const s = socketRef.current;
+    if (!s || !roomId) return;
+
+    function handleIncomingCall(data) {
+      const { from, callType: type, sdp } = data;
+      // Show incoming call notification and auto-accept
+      setCallActive(true);
+      setCallType(type);
+      // Handle SDP answer
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription({ type: "offer", sdp }));
+        peerConnectionRef.current.createAnswer().then(answer => {
+          peerConnectionRef.current.setLocalDescription(answer);
+          s.emit("answer", { roomId, targetId: from, sdp: answer.sdp });
+        });
+      }
+    }
+
+    function handleAnswer(data) {
+      const { sdp } = data;
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp }));
+      }
+    }
+
+    function handleICECandidate(data) {
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+      }
+    }
+
+    function handleEndCall() {
+      setCallActive(false);
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
+    }
+
+    s.on("incoming_call", handleIncomingCall);
+    s.on("answer", handleAnswer);
+    s.on("ice_candidate", handleICECandidate);
+    s.on("end_call", handleEndCall);
+
+    return () => {
+      s.off("incoming_call", handleIncomingCall);
+      s.off("answer", handleAnswer);
+      s.off("ice_candidate", handleICECandidate);
+      s.off("end_call", handleEndCall);
+    };
+  }, [roomId, session.token, session.user.id]);
+
   if (!roomId) {
     return <div className="empty-state">No chat selected</div>;
+  }
+
+  if (callActive) {
+    return (
+      <div className="call-screen">
+        <div className="call-overlay">
+          <div className="incoming-call-card">
+            <div className="incoming-call-avatar">
+              {(otherMember?.username || "U").charAt(0).toUpperCase()}
+            </div>
+            <div className="incoming-call-name">
+              {otherMember?.username || "Unknown"}
+            </div>
+            <div className="incoming-call-sub">
+              {callType === "video" ? "Video call" : "Voice call"}
+            </div>
+            <div className="incoming-call-actions">
+              <button className="call-btn-accept" onClick={startCall}>
+                End Call
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -374,18 +551,9 @@ export default function ChatRoom({ session, onLogout }) {
               title={callActive ? "End call" : "Start a call"}
               aria-label={callActive ? "End call" : "Start a call"}
             >
-              <span className="call-btn-label">{callActive ? "📞" : "📞"}</span>
-              <span>{callActive ? "End" : callType}</span>
+              <span className="call-btn-label">📞</span>
+              <span>{callType === "audio" ? "Audio" : "Video"}</span>
             </button>
-            <select
-              className="call-type-selector"
-              value={callType}
-              onChange={(e) => setCallType(e.target.value)}
-              style={{marginLeft: "8px", padding: "4px 8px", borderRadius: "999px", border: "1px solid rgba(99, 102, 241, 0.2)", background: "rgba(255, 255, 255, 0.1)", color: "var(--text-primary)"}}
-            >
-              <option value="audio">Audio</option>
-              <option value="video">Video</option>
-            </select>
           </div>
         </header>
 

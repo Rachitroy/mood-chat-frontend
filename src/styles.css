@@ -2479,15 +2479,16 @@ a:focus-visible {
   left: 0;
   right: 0;
   height: 64px;
-  background: rgba(8, 15, 28, 0.92);
+  background: rgba(8, 15, 28, 0.98); /* More solid background */
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   display: flex;
   justify-content: space-around;
   align-items: center;
   z-index: 110;
-  border-top: 1px solid rgba(235, 241, 255, 0.1);
+  border-top: 1px solid rgba(235, 241, 255, 0.2);
   padding: 0 8px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .nav-item {
@@ -2557,6 +2558,7 @@ a:focus-visible {
   max-width: 600px;
   margin: 0 auto;
   width: 100%;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
 /* ==========================================
@@ -3086,27 +3088,23 @@ a:focus-visible {
   }
 }
 
-/* Mobile - vertical layout */
+/* Mobile - horizontal layout with smaller items */
 @media (max-width: 599px) {
   .composer {
-    flex-wrap: wrap;
-    margin-bottom: 12px;
+    flex-wrap: nowrap;
+    margin-bottom: 8px;
   }
 
   .composer input:not([type]) {
-    flex-basis: 70%;
-  }
-
-  .composer button[type="submit"] {
-    flex-basis: 30%;
-  }
-
-  .composer button[type="submit"] {
-    padding: 10px 14px;
-  }
-
-  .composer input:not([type]) {
+    flex-basis: calc(100% - 98px);
     padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .composer button[type="submit"] {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    font-size: 12px;
   }
 }
 
