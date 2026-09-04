@@ -2905,6 +2905,8 @@ a:focus-visible {
   padding: 12px 20px;
   background: rgba(239, 68, 68, 0.06);
   border-top: 1px solid rgba(239, 68, 68, 0.15);
+  position: relative;
+  z-index: 100;
 }
 
 .recording-dot {
@@ -2956,6 +2958,28 @@ a:focus-visible {
 
 .recording-send:hover {
   transform: scale(1.05);
+}
+
+/* ==========================================
+   RECORDING PREVIEW STYLES
+   ========================================== */
+
+.recording-preview {
+  position: absolute;
+  top: -80px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 200;
+  max-width: 280px;
+}
+
+.recording-preview audio {
+  width: 100%;
+  max-width: 260px;
 }
 
 /* ==========================================

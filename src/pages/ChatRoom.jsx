@@ -29,6 +29,9 @@ export default function ChatRoom({ session, onLogout }) {
   const [currentEmotion, setCurrentEmotion] = useState("neutral");
   const [room, setRoom] = useState(null);
   const [callActive, setCallActive] = useState(false);
+  const [callType, setCallType] = useState("audio"); // 'audio' or 'video'
+  const [recordingUrl, setRecordingUrl] = useState(null);
+  const recordingPreviewRef = useRef(null);
 
   const listRef = useRef(null);
   const shakeTargetRef = useRef(null);
@@ -244,8 +247,26 @@ export default function ChatRoom({ session, onLogout }) {
     }
   }
 
-  function stopRecording() {
-    mediaRecorderRef.current?.stop();
+  async function stopRecording() {
+    if (!mediaRecorderRef.current) return;
+
+    mediaRecorderRef.current.stop();
+
+    // Wait for the blob to be available
+    await new Promise(resolve => {
+      const checkBlob = () => {
+        if (recordedChunksRef.current.length > 0) {
+          resolve();
+        } else {
+          setTimeout(checkBlob, 100);
+        }
+      };
+      checkBlob();
+    });
+
+    const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    setRecordingUrl(url);
   }
 
   function cancelRecording() {
@@ -272,12 +293,18 @@ export default function ChatRoom({ session, onLogout }) {
 
   function startCall() {
     if (!otherMember) return;
+    const s = socketRef.current;
     if (callActive) {
       setCallActive(false);
+      if (s) {
+        s.emit("end_call", { roomId });
+      }
       return;
     }
     setCallActive(true);
-    setTimeout(() => setCallActive(false), 15000);
+    if (s) {
+      s.emit("start_call", { roomId, callType, targetId: otherMember.id });
+    }
   }
 
   async function handleFileSelected(e) {
@@ -348,8 +375,17 @@ export default function ChatRoom({ session, onLogout }) {
               aria-label={callActive ? "End call" : "Start a call"}
             >
               <span className="call-btn-label">{callActive ? "📞" : "📞"}</span>
-              <span>{callActive ? "End" : "Call"}</span>
+              <span>{callActive ? "End" : callType}</span>
             </button>
+            <select
+              className="call-type-selector"
+              value={callType}
+              onChange={(e) => setCallType(e.target.value)}
+              style={{marginLeft: "8px", padding: "4px 8px", borderRadius: "999px", border: "1px solid rgba(99, 102, 241, 0.2)", background: "rgba(255, 255, 255, 0.1)", color: "var(--text-primary)"}}
+            >
+              <option value="audio">Audio</option>
+              <option value="video">Video</option>
+            </select>
           </div>
         </header>
 
@@ -433,6 +469,14 @@ export default function ChatRoom({ session, onLogout }) {
             <button type="button" className="recording-send" onClick={stopRecording}>
               Send
             </button>
+            <div className="recording-preview">
+              <audio
+                ref={recordingPreviewRef}
+                src={recordingUrl}
+                controls
+                style={{display: recordingUrl ? 'block' : 'none'}}
+              />
+            </div>
           </div>
         ) : (
           <form className="composer" onSubmit={handleSend}>
