@@ -87,14 +87,14 @@ export default function CreateRoom({ session, onLogout }) {
             className={`mode-btn${!isGroup ? " active" : ""}`}
             onClick={() => setIsGroup(false)}
           >
-            Direct message
+            👤 Direct message
           </button>
           <button
             type="button"
             className={`mode-btn${isGroup ? " active" : ""}`}
             onClick={() => setIsGroup(true)}
           >
-            Group
+            👥 Group
           </button>
         </div>
 
@@ -102,7 +102,7 @@ export default function CreateRoom({ session, onLogout }) {
           {!isGroup ? (
             <>
               <p style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "8px" }}>
-                Enter the username of the person you want to chat with.
+                Enter a username to send a chat request. The other person must accept before you can chat.
               </p>
               <input
                 type="text"
