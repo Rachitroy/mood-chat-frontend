@@ -648,12 +648,6 @@ export default function ChatRoom({ session, onLogout }) {
           </div>
         ) : (
           <form className="composer" onSubmit={handleSend}>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="visually-hidden"
-              onChange={handleFileSelected}
-            />
             <button
               type="button"
               className="attach-btn"
@@ -673,6 +667,7 @@ export default function ChatRoom({ session, onLogout }) {
               🎤
             </button>
             <input
+              type="text"
               placeholder="Type a message…"
               value={draft}
               onChange={handleDraftChange}
