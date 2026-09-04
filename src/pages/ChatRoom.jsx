@@ -28,6 +28,7 @@ export default function ChatRoom({ session, onLogout }) {
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [currentEmotion, setCurrentEmotion] = useState("neutral");
   const [room, setRoom] = useState(null);
+  const [callActive, setCallActive] = useState(false);
 
   const listRef = useRef(null);
   const shakeTargetRef = useRef(null);
@@ -269,6 +270,16 @@ export default function ChatRoom({ session, onLogout }) {
     setReplyingTo(null);
   }
 
+  function startCall() {
+    if (!otherMember) return;
+    if (callActive) {
+      setCallActive(false);
+      return;
+    }
+    setCallActive(true);
+    setTimeout(() => setCallActive(false), 15000);
+  }
+
   async function handleFileSelected(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -327,6 +338,18 @@ export default function ChatRoom({ session, onLogout }) {
           <div className="chat-header-room">
             <p className="chat-header-eyebrow">{otherMember ? "Private chat" : "Group chat"}</p>
             <h2>{otherMember?.username || "Unknown"}</h2>
+          </div>
+          <div className="chat-header-actions">
+            <button
+              type="button"
+              className="call-btn-header"
+              onClick={startCall}
+              title={callActive ? "End call" : "Start a call"}
+              aria-label={callActive ? "End call" : "Start a call"}
+            >
+              <span className="call-btn-label">{callActive ? "📞" : "📞"}</span>
+              <span>{callActive ? "End" : "Call"}</span>
+            </button>
           </div>
         </header>
 
