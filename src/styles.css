@@ -2729,6 +2729,8 @@ a:focus-visible {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Extra bottom padding so the composer never sits behind the fixed nav bar */
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
 .chat-header {
