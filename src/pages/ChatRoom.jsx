@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api.js";
 import { runEmotionEffect } from "../lib/effects.js";
+import { connectSocket, disconnectSocket, getSocket } from "../lib/socket.js";
 import { useParams, useNavigate } from "react-router-dom";
 import MessageContent from "../components/MessageContent.jsx";
 
@@ -64,7 +65,6 @@ export default function ChatRoom({ session, onLogout }) {
     }).catch(() => setLoading(false));
 
     // Connect socket for this room
-    const { connectSocket, disconnectSocket, getSocket } = require("../lib/socket.js");
     const s = connectSocket(session.token);
     socketRef.current = s;
     s.emit("join_room", { roomId });
