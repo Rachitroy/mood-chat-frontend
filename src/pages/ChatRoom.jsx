@@ -297,13 +297,13 @@ export default function ChatRoom({ session, onLogout }) {
     if (callActive) {
       setCallActive(false);
       if (s) {
-        s.emit("end_call", { roomId });
+        s.emit("call:end", { targetUserId: otherMember.id });
       }
       return;
     }
     setCallActive(true);
     if (s) {
-      s.emit("start_call", { roomId, callType, targetId: otherMember.id });
+      s.emit("call:invite", { targetUserId: otherMember.id, roomId, callType });
     }
   }
 
@@ -355,32 +355,12 @@ export default function ChatRoom({ session, onLogout }) {
   const localStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
 
-  async function startCall() {
+  async function initiateCall() {
     if (!otherMember) return;
     const s = socketRef.current;
 
-    if (callActive) {
-      // End call
-      setCallActive(false);
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-        peerConnectionRef.current = null;
-      }
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
-        localStreamRef.current = null;
-      }
-      if (s) {
-        s.emit("end_call", { roomId, callType });
-      }
-      return;
-    }
-
-    // Start call
-    setCallActive(true);
-
     try {
-      // Get user media (camera and/or microphone)
+      // Get user media
       const constraints = callType === "video"
         ? { video: true, audio: true }
         : { audio: true };
@@ -388,58 +368,65 @@ export default function ChatRoom({ session, onLogout }) {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
 
-      // Create peer connection with STUN servers
+      // Create peer connection
       const peerConnection = new RTCPeerConnection({
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
           { urls: "stun:stun1.l.google.com:19302" },
-          { urls: "stun:stun2.l.google.com:19302" },
-          { urls: "stun:stun3.l.google.com:19302" },
-          { urls: "stun:stun4.l.google.com:19302" },
         ]
       });
       peerConnectionRef.current = peerConnection;
 
-      // Add local tracks to peer connection
+      // Add local tracks
       stream.getTracks().forEach(track => {
         peerConnection.addTrack(track, stream);
       });
 
-      // Handle incoming remote stream
-      peerConnection.ontrack = (event) => {
-        const remoteStream = event.streams[0];
-        // In a real app, you'd attach this to a <video> element
-        console.log("Received remote stream:", remoteStream);
-      };
-
       // ICE candidate handling
       peerConnection.onicecandidate = (event) => {
         if (event.candidate && s) {
-          s.emit("ice_candidate", {
-            roomId,
-            targetId: otherMember.id,
-            candidate: event.candidate
+          s.emit("call:signal", {
+            targetUserId: otherMember.id,
+            data: { type: "candidate", payload: event.candidate }
           });
         }
+      };
+
+      // Handle remote stream
+      peerConnection.ontrack = (event) => {
+        const remoteStream = event.streams[0];
+        console.log("Remote stream:", remoteStream);
       };
 
       // Create and send offer
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
 
-      if (s) {
-        s.emit("start_call", {
-          roomId,
-          targetId: otherMember.id,
-          callType,
-          sdp: offer.sdp
-        });
-      }
+      s.emit("call:signal", {
+        targetUserId: otherMember.id,
+        data: { type: "offer", payload: offer }
+      });
 
     } catch (err) {
       console.error("Failed to start call:", err);
-      setUploadError("Failed to start call. Please check microphone/camera permissions.");
+      setUploadError("Failed to start call. Check permissions.");
       setCallActive(false);
+    }
+  }
+
+  function endCall() {
+    setCallActive(false);
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    const s = socketRef.current;
+    if (s) {
+      s.emit("call:end", { targetUserId: otherMember.id });
     }
   }
 
@@ -448,35 +435,22 @@ export default function ChatRoom({ session, onLogout }) {
     const s = socketRef.current;
     if (!s || !roomId) return;
 
-    function handleIncomingCall(data) {
-      const { from, callType: type, sdp } = data;
-      // Show incoming call notification and auto-accept
+    function handleIncomingCall({ fromUser, roomId: rid, callType: type }) {
       setCallActive(true);
       setCallType(type);
-      // Handle SDP answer
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription({ type: "offer", sdp }));
-        peerConnectionRef.current.createAnswer().then(answer => {
-          peerConnectionRef.current.setLocalDescription(answer);
-          s.emit("answer", { roomId, targetId: from, sdp: answer.sdp });
-        });
-      }
     }
 
-    function handleAnswer(data) {
-      const { sdp } = data;
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp }));
-      }
+    function handleAccepted({ fromUser }) {
+      // Caller: create and send offer
+      initiateCall();
     }
 
-    function handleICECandidate(data) {
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
-      }
+    function handleRejected() {
+      setUploadError("Call declined.");
+      setCallActive(false);
     }
 
-    function handleEndCall() {
+    function handleEnded() {
       setCallActive(false);
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
@@ -488,16 +462,37 @@ export default function ChatRoom({ session, onLogout }) {
       }
     }
 
-    s.on("incoming_call", handleIncomingCall);
-    s.on("answer", handleAnswer);
-    s.on("ice_candidate", handleICECandidate);
-    s.on("end_call", handleEndCall);
+    async function handleSignal({ fromUserId, data }) {
+      const pc = peerConnectionRef.current;
+      if (!pc) return;
+
+      if (data.type === "offer") {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        s.emit("call:signal", {
+          targetUserId: fromUserId,
+          data: { type: "answer", payload: answer }
+        });
+      } else if (data.type === "answer") {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+      } else if (data.type === "candidate") {
+        await pc.addIceCandidate(new RTCIceCandidate(data.payload));
+      }
+    }
+
+    s.on("call:incoming", handleIncomingCall);
+    s.on("call:accepted", handleAccepted);
+    s.on("call:rejected", handleRejected);
+    s.on("call:ended", handleEnded);
+    s.on("call:signal", handleSignal);
 
     return () => {
-      s.off("incoming_call", handleIncomingCall);
-      s.off("answer", handleAnswer);
-      s.off("ice_candidate", handleICECandidate);
-      s.off("end_call", handleEndCall);
+      s.off("call:incoming", handleIncomingCall);
+      s.off("call:accepted", handleAccepted);
+      s.off("call:rejected", handleRejected);
+      s.off("call:ended", handleEnded);
+      s.off("call:signal", handleSignal);
     };
   }, [roomId, session.token, session.user.id]);
 
@@ -520,7 +515,7 @@ export default function ChatRoom({ session, onLogout }) {
               {callType === "video" ? "Video call" : "Voice call"}
             </div>
             <div className="incoming-call-actions">
-              <button className="call-btn-accept" onClick={startCall}>
+              <button className="call-btn-accept" onClick={endCall}>
                 End Call
               </button>
             </div>
@@ -547,7 +542,7 @@ export default function ChatRoom({ session, onLogout }) {
             <button
               type="button"
               className="call-btn-header"
-              onClick={startCall}
+              onClick={initiateCall}
               title={callActive ? "End call" : "Start a call"}
               aria-label={callActive ? "End call" : "Start a call"}
             >
