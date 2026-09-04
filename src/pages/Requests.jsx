@@ -46,10 +46,15 @@ export default function Requests({ session, onLogout }) {
 
   const handleAction = async (requestId, action) => {
     try {
-      await api.actionRequest(session.token, requestId, action);
+      const result = await api.actionRequest(session.token, requestId, action);
       setRequests(requests.filter(r => r.id !== requestId));
-      setActionMessage(action === "accept" ? "Request accepted!" : "Request declined.");
-      setTimeout(() => setActionMessage(""), 3000);
+
+      if (action === "accept" && result.roomId) {
+        navigate(`/chat/${result.roomId}`);
+      } else {
+        setActionMessage("Request declined.");
+        setTimeout(() => setActionMessage(""), 3000);
+      }
     } catch (err) {
       setActionMessage(err.message || "Action failed");
     }

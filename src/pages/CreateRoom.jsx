@@ -34,16 +34,22 @@ export default function CreateRoom({ session, onLogout }) {
 
   async function handleCreate(e) {
     e.preventDefault();
-    const nameOrUsername = (isGroup ? groupName : username).trim();
-    if (!nameOrUsername) return;
 
     setLoading(true);
     try {
-      const memberUsernames = isGroup
-        ? [nameOrUsername, ...memberInput.split(",").map((m) => m.trim()).filter(Boolean)]
-        : [];
-      const data = await api.createRoom(session.token, nameOrUsername, isGroup, memberUsernames);
-      navigate(`/chat/${data.room.id}`);
+      if (isGroup) {
+        const name = groupName.trim();
+        if (!name) return;
+        const memberUsernames = memberInput.split(",").map((m) => m.trim()).filter(Boolean);
+        const data = await api.createRoom(session.token, name, true, memberUsernames);
+        navigate(`/chat/${data.room.id}`);
+      } else {
+        const target = username.trim();
+        if (!target) return;
+        await api.sendRequest(session.token, target, "Let's chat!");
+        alert(`Request sent to ${target}. They can accept it from the Requests tab.`);
+        navigate("/");
+      }
     } catch (err) {
       alert(err.message || "Failed to create chat");
     } finally {
@@ -167,7 +173,7 @@ export default function CreateRoom({ session, onLogout }) {
           )}
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? "Creating…" : "Start chat"}
+            {loading ? "Sending…" : isGroup ? "Create Group" : "Send Request"}
           </button>
         </form>
       </main>
