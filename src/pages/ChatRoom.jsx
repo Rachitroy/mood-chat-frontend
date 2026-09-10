@@ -70,6 +70,7 @@ export default function ChatRoom({ session, onLogout }) {
 
     // Connect socket for this room
     const s = connectSocket(session.token);
+    console.log("Socket connected:", s?.id, "user:", session.user.id);
     socketRef.current = s;
     s.emit("join_room", { roomId });
 
@@ -292,19 +293,18 @@ export default function ChatRoom({ session, onLogout }) {
   }
 
   function startCall() {
-    if (!otherMember) return;
-    const s = socketRef.current;
-    if (callActive) {
-      setCallActive(false);
-      if (s) {
-        s.emit("call:end", { targetUserId: otherMember.id });
-      }
+    console.log("startCall clicked", { otherMember, callActive, callType });
+    if (!otherMember) {
+      console.log("startCall: no otherMember, returning early");
       return;
     }
-    setCallActive(true);
-    if (s) {
-      s.emit("call:invite", { targetUserId: otherMember.id, roomId, callType });
+    const s = socketRef.current;
+    if (callActive) {
+      endCall();
+      return;
     }
+    // Emit invite and setup WebRTC immediately for the caller
+    initiateCall();
   }
 
   async function handleFileSelected(e) {
@@ -356,6 +356,105 @@ export default function ChatRoom({ session, onLogout }) {
   const peerConnectionRef = useRef(null);
 
   async function initiateCall() {
+    if (!otherMember) {
+      console.log("initiateCall: no otherMember, returning early");
+      return;
+    }
+    const s = socketRef.current;
+    if (!s) {
+      console.log("initiateCall: no socket, returning early");
+      return;
+    }
+
+    try {
+      console.log("initiateCall: starting call to", otherMember.id, "callType:", callType);
+      // Show calling state immediately
+      setCallActive(true);
+
+      // Send invite to the other user
+      s.emit("call:invite", { targetUserId: otherMember.id, roomId, callType });
+      console.log("initiateCall: call:invite emitted to", otherMember.id);
+
+      // Setup peer connection for caller to send offer
+      const setupResult = await setupPeerConnectionAndSendOffer();
+      console.log("initiateCall: setupPeerConnectionAndSendOffer returned", setupResult);
+
+    } catch (err) {
+      console.error("Failed to start call:", err);
+      setUploadError("Failed to start call. Check permissions.");
+      setCallActive(false);
+    }
+  }
+
+  async function setupPeerConnectionAndSendOffer() {
+    if (!otherMember) return;
+    if (peerConnectionRef.current) return; // Already set up
+    const s = socketRef.current;
+
+    try {
+      console.log("setupPeerConnectionAndSendOffer: creating peer connection");
+      // Get user media
+      const constraints = callType === "video"
+        ? { video: true, audio: true }
+        : { audio: true };
+
+      console.log("setupPeerConnectionAndSendOffer: getting user media with", constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      localStreamRef.current = stream;
+      console.log("setupPeerConnectionAndSendOffer: got stream", stream.getTracks().length, "tracks");
+
+      // Create peer connection
+      const peerConnection = new RTCPeerConnection({
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+        ]
+      });
+      peerConnectionRef.current = peerConnection;
+      console.log("setupPeerConnectionAndSendOffer: RTCPeerConnection created");
+
+      // Add local tracks
+      stream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, stream);
+      });
+
+      // ICE candidate handling
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && s) {
+          s.emit("call:signal", {
+            targetUserId: otherMember.id,
+            data: { type: "candidate", payload: event.candidate }
+          });
+        }
+      };
+
+      // Handle remote stream
+      peerConnection.ontrack = (event) => {
+        const remoteStream = event.streams[0];
+        console.log("Remote stream:", remoteStream);
+        // TODO: attach remoteStream to video/audio elements
+      };
+
+      // Create and send offer
+      console.log("setupPeerConnectionAndSendOffer: creating offer");
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      console.log("setupPeerConnectionAndSendOffer: offer created, emitting call:signal");
+
+      s.emit("call:signal", {
+        targetUserId: otherMember.id,
+        data: { type: "offer", payload: offer }
+      });
+      console.log("setupPeerConnectionAndSendOffer: call:signal emitted");
+
+    } catch (err) {
+      console.error("Failed to setup peer connection:", err);
+      setUploadError("Failed to start call. Check permissions.");
+      endCall();
+    }
+  }
+
+  async function setupPeerConnectionForCallee() {
     if (!otherMember) return;
     const s = socketRef.current;
 
@@ -396,19 +495,11 @@ export default function ChatRoom({ session, onLogout }) {
       peerConnection.ontrack = (event) => {
         const remoteStream = event.streams[0];
         console.log("Remote stream:", remoteStream);
+        // TODO: attach remoteStream to video/audio elements
       };
 
-      // Create and send offer
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-
-      s.emit("call:signal", {
-        targetUserId: otherMember.id,
-        data: { type: "offer", payload: offer }
-      });
-
     } catch (err) {
-      console.error("Failed to start call:", err);
+      console.error("Failed to setup call:", err);
       setUploadError("Failed to start call. Check permissions.");
       setCallActive(false);
     }
@@ -430,27 +521,51 @@ export default function ChatRoom({ session, onLogout }) {
     }
   }
 
+  function acceptCall() {
+    console.log("acceptCall called, callActive:", callActive, "otherMember:", otherMember?.id);
+    setCallActive(true);
+    const s = socketRef.current;
+    if (s) {
+      s.emit("call:accept", { targetUserId: otherMember.id });
+      console.log("call:accept emitted");
+    }
+    // Set up peer connection to receive the offer and answer it
+    setupPeerConnectionForCallee();
+  }
+
+  function declineCall() {
+    const s = socketRef.current;
+    if (s) {
+      s.emit("call:reject", { targetUserId: otherMember.id });
+    }
+    setCallActive(false);
+  }
+
   // Socket event listeners for incoming calls
   useEffect(() => {
     const s = socketRef.current;
     if (!s || !roomId) return;
 
     function handleIncomingCall({ fromUser, roomId: rid, callType: type }) {
+      console.log("handleIncomingCall:", { fromUser, callType: type });
       setCallActive(true);
       setCallType(type);
     }
 
     function handleAccepted({ fromUser }) {
-      // Caller: create and send offer
-      initiateCall();
+      console.log("handleAccepted:", fromUser);
+      // Offer was already sent by the caller in initiateCall()
+      // This just confirms the callee received the invite
     }
 
     function handleRejected() {
-      setUploadError("Call declined.");
+      console.log("handleRejected");
       setCallActive(false);
+      setUploadError("Call declined.");
     }
 
     function handleEnded() {
+      console.log("handleEnded");
       setCallActive(false);
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
@@ -463,8 +578,12 @@ export default function ChatRoom({ session, onLogout }) {
     }
 
     async function handleSignal({ fromUserId, data }) {
+      console.log("handleSignal:", { fromUserId, data: data.type });
       const pc = peerConnectionRef.current;
-      if (!pc) return;
+      if (!pc) {
+        console.log("No peer connection for signal:", data.type);
+        return;
+      }
 
       if (data.type === "offer") {
         await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
@@ -515,8 +634,11 @@ export default function ChatRoom({ session, onLogout }) {
               {callType === "video" ? "Video call" : "Voice call"}
             </div>
             <div className="incoming-call-actions">
-              <button className="call-btn-accept" onClick={endCall}>
-                End Call
+              <button className="call-btn-accept" onClick={acceptCall}>
+                Accept
+              </button>
+              <button className="call-btn-decline" onClick={declineCall}>
+                Decline
               </button>
             </div>
           </div>
@@ -542,7 +664,7 @@ export default function ChatRoom({ session, onLogout }) {
             <button
               type="button"
               className="call-btn-header"
-              onClick={initiateCall}
+              onClick={startCall}
               title={callActive ? "End call" : "Start a call"}
               aria-label={callActive ? "End call" : "Start a call"}
             >
