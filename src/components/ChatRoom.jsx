@@ -18,21 +18,18 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
   const [otherMember, setOtherMember] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null); // { id, senderUsername, messageType, preview }
   const [isRecording, setIsRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
-  const [currentEmotion, setCurrentEmotion] = useState("neutral");
 
   const listRef = useRef(null);
   const shakeTargetRef = useRef(null);
   const rainContainerRef = useRef(null);
-  const chatMainRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const recordTimerRef = useRef(null);
-  const emotionTimeoutRef = useRef(null);
 
   // Load history + join the socket room whenever the active room changes
   useEffect(() => {
@@ -73,25 +70,11 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
       setMessages((prev) => [...prev, msg]);
 
       if (msg.sender.id !== user.id) {
-        const emotion = msg.emotionTag || "neutral";
-        onMoodChange(emotion);
-
-        // Apply emotion effect
-        setCurrentEmotion(emotion);
-
-        // Run visual/audio effects
-        runEmotionEffect(emotion, {
+        onMoodChange(msg.emotionTag);
+        runEmotionEffect(msg.emotionTag, {
           shakeTarget: shakeTargetRef.current,
           rainContainer: rainContainerRef.current,
         });
-
-        // Reset emotion after delay
-        if (emotionTimeoutRef.current) {
-          clearTimeout(emotionTimeoutRef.current);
-        }
-        emotionTimeoutRef.current = setTimeout(() => {
-          setCurrentEmotion("neutral");
-        }, 2000);
       }
     }
 
@@ -126,23 +109,11 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
 
     socket.emit("send_message", { roomId: room.id, content, replyToId }, (res) => {
       if (res?.ok) {
-        const emotion = res.message.emotionTag || "neutral";
-        onMoodChange(emotion);
-
-        // Apply emotion effect
-        setCurrentEmotion(emotion);
-        runEmotionEffect(emotion, {
+        onMoodChange(res.message.emotionTag);
+        runEmotionEffect(res.message.emotionTag, {
           shakeTarget: shakeTargetRef.current,
           rainContainer: rainContainerRef.current,
         });
-
-        // Reset emotion after delay
-        if (emotionTimeoutRef.current) {
-          clearTimeout(emotionTimeoutRef.current);
-        }
-        emotionTimeoutRef.current = setTimeout(() => {
-          setCurrentEmotion("neutral");
-        }, 2000);
       }
     });
     setDraft("");
@@ -302,21 +273,18 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
   }
 
   return (
-    <div className="chat-main" ref={shakeTargetRef} data-emotion={currentEmotion}>
+    <div className="chat-main" ref={shakeTargetRef}>
       <div className="rain-overlay" ref={rainContainerRef} />
 
-      <div className="chat-header">
-        <div className="chat-header-room">
+      <div className="chat-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button className="back-btn" onClick={onBack} aria-label="Back to rooms">
             ←
           </button>
-          <div>
-            <p className="chat-header-eyebrow">{room.is_group ? "Group room" : "Private room"}</p>
-            <h2>{room.is_group ? "# " : ""}{room.name}</h2>
-          </div>
+          <h2>{room.is_group ? "# " : ""}{room.name}</h2>
         </div>
         {otherMember && (
-          <div className="chat-header-actions" aria-label="Call actions">
+          <div>
             <button
               className="call-btn-header"
               disabled={callDisabled}
@@ -336,9 +304,9 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
       </div>
 
       <div className="message-list" ref={listRef}>
-        {loading && <p className="message-state">Loading messages…</p>}
+        {loading && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading messages…</p>}
         {!loading && messages.length === 0 && (
-          <p className="message-state">
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
             No messages yet — say something.
           </p>
         )}
@@ -354,7 +322,7 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
                 {own ? "You" : senderName} · {formatTime(createdAt)}
               </div>
               <div className="message-bubble-wrap">
-                <div className="message-bubble" data-emotion={tag}>
+                <div className="message-bubble" data-mood={tag}>
                   {msg.replyTo && (
                     <div className="reply-quote">
                       <span className="reply-quote-sender">{msg.replyTo.senderUsername}</span>
@@ -386,7 +354,7 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
       </div>
 
       {uploadError && (
-        <div className="error-banner composer-error" role="status">
+        <div className="error-banner" style={{ margin: "0 24px 8px" }}>
           {uploadError}
         </div>
       )}
@@ -423,7 +391,7 @@ export default function ChatRoom({ user, token, socket, room, onMoodChange, onSt
           <input
             type="file"
             ref={fileInputRef}
-            className="visually-hidden"
+            style={{ display: "none" }}
             onChange={handleFileSelected}
           />
           <button
